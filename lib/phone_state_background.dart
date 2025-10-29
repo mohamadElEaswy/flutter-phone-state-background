@@ -1,5 +1,3 @@
-library phone_state_background;
-
 import 'dart:async';
 import 'dart:ui';
 
@@ -66,14 +64,14 @@ class PhoneStateBackground {
 @pragma('vm:entry-point')
 void _callbackDispatcher() {
   // 1. Initialize MethodChannel used to communicate with the platform portion of the plugin.
-  const MethodChannel _backgroundChannel =
+  const MethodChannel backgroundChannel =
       MethodChannel('me.sodipto.phone_state_background_listner');
 
   // 2. Setup internal state needed for MethodChannels.
   WidgetsFlutterBinding.ensureInitialized();
 
   // 3. Listen for background events from the platform portion of the plugin.
-  _backgroundChannel.setMethodCallHandler((MethodCall call) async {
+  backgroundChannel.setMethodCallHandler((MethodCall call) async {
     final args = call.arguments as List<dynamic>;
 
     // 3.1. Retrieve callback instance for handle.
