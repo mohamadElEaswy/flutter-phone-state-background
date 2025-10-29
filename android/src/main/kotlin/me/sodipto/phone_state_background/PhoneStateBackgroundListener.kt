@@ -91,6 +91,9 @@ class PhoneStateBackgroundListener internal constructor(
 
     private fun notifyFlutterEngine(type: CallEvent, duration: Long, number: String){
         val arguments = ArrayList<Any?>()
+        
+        // Launch overlay for incoming/outgoing call events
+        launchOverlay(type, number)
 
         // Initialize flutter engine
         if (sBackgroundFlutterEngine == null) {
@@ -138,5 +141,22 @@ class PhoneStateBackgroundListener internal constructor(
         arguments.add(duration)
         arguments.add(number)
         channel!!.invokeMethod("call", arguments)
+    }
+    
+    private fun launchOverlay(type: CallEvent, number: String) {
+        try {
+            // Only show overlay when call starts, don't hide it when call ends
+            if (type == CallEvent.INCOMINGSTART || type == CallEvent.OUTGOINGSTART) {
+                val overlayIntent = Intent(context, CallOverlayService::class.java)
+                overlayIntent.putExtra(CallOverlayService.EXTRA_CALL_TYPE, type.toString())
+                overlayIntent.putExtra(CallOverlayService.EXTRA_PHONE_NUMBER, number)
+                
+                // Use regular startService instead of startForegroundService to avoid foreground service requirement
+                context.startService(overlayIntent)
+                Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Overlay launched for $type with number: $number")
+            }
+        } catch (e: Exception) {
+            Log.e(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Error launching overlay", e)
+        }
     }
 }

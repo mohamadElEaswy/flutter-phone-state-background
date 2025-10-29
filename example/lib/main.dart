@@ -67,11 +67,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   bool hasPermission = false;
+  bool hasOverlayPermission = false;
 
   @override
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.resumed) {
       await _hasPermission();
+      await _hasOverlayPermission();
     }
   }
 
@@ -79,6 +81,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     _hasPermission();
+    _hasOverlayPermission();
     super.initState();
   }
 
@@ -95,8 +98,19 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _hasOverlayPermission() async {
+    final permission = await PhoneStateBackground.checkOverlayPermission();
+    if (mounted) {
+      setState(() => hasOverlayPermission = permission);
+    }
+  }
+
   Future<void> _requestPermission() async {
     await PhoneStateBackground.requestPermissions();
+  }
+
+  Future<void> _requestOverlayPermission() async {
+    await PhoneStateBackground.requestOverlayPermission();
   }
 
   Future<void> _stop() async {
@@ -115,50 +129,75 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'Has Permission: $hasPermission',
-              style: TextStyle(
-                fontSize: 16,
-                color: hasPermission ? Colors.green : Colors.red,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                'Phone State Permission: $hasPermission',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: hasPermission ? Colors.green : Colors.red,
+                ),
               ),
-            ),
-            const SizedBox(
-              height: 20,
-            ),
-            SizedBox(
-              width: 180,
-              child: ElevatedButton(
-                onPressed: () => _requestPermission(),
-                child: const Text('Check Permission'),
+              const SizedBox(height: 10),
+              Text(
+                'Overlay Permission: $hasOverlayPermission',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: hasOverlayPermission ? Colors.green : Colors.red,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: SizedBox(
-                width: 180,
+              const SizedBox(height: 20),
+              SizedBox(
+                width: 220,
                 child: ElevatedButton(
-                  onPressed: () => _init(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green, // Background color
+                  onPressed: () => _requestPermission(),
+                  child: const Text('Request Phone Permission'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: 220,
+                child: ElevatedButton(
+                  onPressed: () => _requestOverlayPermission(),
+                  child: const Text('Request Overlay Permission'),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  'Start the listener to enable call overlay',
+                  style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: SizedBox(
+                  width: 220,
+                  child: ElevatedButton(
+                    onPressed: () => _init(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    child: const Text('Start Listener'),
                   ),
-                  child: const Text('Start Listener'),
                 ),
               ),
-            ),
-            SizedBox(
-              width: 180,
-              child: ElevatedButton(
-                onPressed: () => _stop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red, // Background color
+              SizedBox(
+                width: 220,
+                child: ElevatedButton(
+                  onPressed: () => _stop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                  ),
+                  child: const Text('Stop Listener'),
                 ),
-                child: const Text('Stop Listener'),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

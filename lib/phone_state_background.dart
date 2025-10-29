@@ -54,6 +54,32 @@ class PhoneStateBackground {
     }
   }
 
+  /// Check if the user has granted permission for `SYSTEM_ALERT_WINDOW` (overlay permission)
+  ///
+  /// This permission is required to display overlay windows on top of other apps.
+  /// The future will always be resolved with a value, there's no need to wrap
+  /// this method in a `try/catch` block
+  static Future<bool> checkOverlayPermission() async {
+    try {
+      final res = await _channel.invokeMethod('checkOverlayPermission');
+      return res == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Request overlay permission from the user
+  ///
+  /// This will open the system settings screen where the user can grant
+  /// overlay permission (SYSTEM_ALERT_WINDOW) to the app.
+  static Future<void> requestOverlayPermission() async {
+    try {
+      await _channel.invokeMethod('requestOverlayPermission');
+    } catch (_) {
+      // Silently fail if the method is not available
+    }
+  }
+
   /// Stops the service and cleans the previous registered callback
   static Future<void> stopPhoneStateBackground() async {
     await _channel.invokeMethod('stopcallstate');

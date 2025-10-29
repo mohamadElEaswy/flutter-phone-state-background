@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -87,6 +88,16 @@ class PhoneStateBackgroundPlugin : FlutterPlugin, MethodCallHandler, ActivityAwa
       val check = doCheckPermission()
       Log.d(PLUGIN_NAME, "Permission checked: $check")
       result.success(check)
+
+    } else if (call.method == "checkOverlayPermission") {
+      val check = checkOverlayPermission()
+      Log.d(PLUGIN_NAME, "Overlay permission checked: $check")
+      result.success(check)
+
+    } else if (call.method == "requestOverlayPermission") {
+      Log.d(PLUGIN_NAME, "Requesting overlay permission...")
+      requestOverlayPermission()
+      result.success(true)
 
     } else {
       result.notImplemented()
@@ -168,6 +179,40 @@ class PhoneStateBackgroundPlugin : FlutterPlugin, MethodCallHandler, ActivityAwa
     return when (requestCode) {
       999 -> grantResults != null && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
       else -> false
+    }
+  }
+
+  private fun checkOverlayPermission(): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      if (currentActivity != null) {
+        Settings.canDrawOverlays(currentActivity)
+      } else {
+        false
+      }
+    } else {
+      true // Permission not required for API < 23
+    }
+  }
+
+  private fun requestOverlayPermission() {
+    if (currentActivity == null) {
+      Log.e(PLUGIN_NAME, "Activity is null, cannot request overlay permission")
+      return
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      if (!Settings.canDrawOverlays(currentActivity)) {
+        val intent = Intent(
+          Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+          Uri.parse("package:${currentActivity!!.packageName}")
+        )
+        currentActivity!!.startActivity(intent)
+        Log.d(PLUGIN_NAME, "Overlay permission request sent")
+      } else {
+        Log.d(PLUGIN_NAME, "Overlay permission already granted")
+      }
+    } else {
+      Log.d(PLUGIN_NAME, "Overlay permission not required for this API level")
     }
   }
 }
