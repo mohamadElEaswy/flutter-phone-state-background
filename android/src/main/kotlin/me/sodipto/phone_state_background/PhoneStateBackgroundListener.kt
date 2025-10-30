@@ -42,6 +42,7 @@ class PhoneStateBackgroundListener internal constructor(
     private var previousState: Int? = null
     private var retryAttempts = 0
     private val maxRetryAttempts = 2
+    private var currentIncomingNumber: String = "" // Store number only from RINGING state
 
     @RequiresApi(Build.VERSION_CODES.O)
     @Synchronized
@@ -65,19 +66,22 @@ class PhoneStateBackgroundListener internal constructor(
                 val duration = Duration.between(time ?: ZonedDateTime.now(), ZonedDateTime.now())
 
                 if (previousState == TelephonyManager.CALL_STATE_OFFHOOK && callType == CallType.INCOMING) {
-                    // Incoming call ended
-                    Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event IDLE (INCOMING ENDED) with number - $incomingNumber")
-                    notifyFlutterEngine(CallEvent.INCOMINGEND, duration.toMillis() / 1000, incomingNumber ?: "")
+                    // Incoming call ended - use stored number from RINGING state
+                    Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event IDLE (INCOMING ENDED) with number - $currentIncomingNumber")
+                    notifyFlutterEngine(CallEvent.INCOMINGEND, duration.toMillis() / 1000, currentIncomingNumber)
                 } else if(callType == CallType.OUTGOING) {
-                    // Outgoing call ended
-                    Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event IDLE (OUTGOING ENDED) with number - $incomingNumber")
-                    notifyFlutterEngine(CallEvent.OUTGOINGEND, duration.toMillis() / 1000, incomingNumber ?: "")
+                    // Outgoing call ended - no incoming number for outgoing calls
+                    Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event IDLE (OUTGOING ENDED)")
+                    notifyFlutterEngine(CallEvent.OUTGOINGEND, duration.toMillis() / 1000, "")
                 }
                 else {
-                    Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event IDLE (INCOMING MISSED) with number - $incomingNumber")
-                    notifyFlutterEngine(CallEvent.INCOMINGMISSED, 0, incomingNumber ?: "")
+                    // Incoming call missed - use stored number from RINGING state
+                    Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event IDLE (INCOMING MISSED) with number - $currentIncomingNumber")
+                    notifyFlutterEngine(CallEvent.INCOMINGMISSED, 0, currentIncomingNumber)
                 }
 
+                // Clear cached number after call ends
+                currentIncomingNumber = ""
                 callType = null
                 previousState = TelephonyManager.CALL_STATE_IDLE
             }
@@ -92,17 +96,21 @@ class PhoneStateBackgroundListener internal constructor(
                 previousState = TelephonyManager.CALL_STATE_OFFHOOK
 
                 if(callType == CallType.OUTGOING){
-                   notifyFlutterEngine(CallEvent.OUTGOINGSTART,0, incomingNumber ?: "")
+                   // Outgoing call - no incoming number, always send empty string
+                   notifyFlutterEngine(CallEvent.OUTGOINGSTART,0, "")
                 }
                 else {
-                    notifyFlutterEngine(CallEvent.INCOMINGRECEIVED,0, incomingNumber ?: "")
+                    // Incoming call received - use stored number from RINGING state
+                    notifyFlutterEngine(CallEvent.INCOMINGRECEIVED,0, currentIncomingNumber)
                 }
             }
             TelephonyManager.CALL_STATE_RINGING -> {
-                Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event PHONE_RINGING number: $incomingNumber")
+                // Store the incoming number ONLY from RINGING state (fresh from OS)
+                currentIncomingNumber = incomingNumber ?: ""
+                Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event PHONE_RINGING number: $currentIncomingNumber")
                 callType = CallType.INCOMING
                 previousState = TelephonyManager.CALL_STATE_RINGING
-                notifyFlutterEngine(CallEvent.INCOMINGSTART,0, incomingNumber ?: "")
+                notifyFlutterEngine(CallEvent.INCOMINGSTART,0, currentIncomingNumber)
             }
         }
     }
