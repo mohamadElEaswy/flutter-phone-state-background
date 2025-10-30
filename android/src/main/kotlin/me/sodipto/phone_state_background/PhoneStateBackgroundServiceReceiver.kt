@@ -8,6 +8,8 @@ import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
 import android.util.Log
 import io.flutter.embedding.engine.loader.FlutterLoader
+import android.os.Handler
+
 
 class PhoneStateBackgroundServiceReceiver : BroadcastReceiver() {
     private var telephony: TelephonyManager? = null
@@ -18,9 +20,9 @@ class PhoneStateBackgroundServiceReceiver : BroadcastReceiver() {
             val flutterLoader = FlutterLoader()
             flutterLoader.startInitialization(context)
             flutterLoader.ensureInitializationComplete(context, null)
-            phoneStateBackgroundListener = PhoneStateBackgroundListener(context, intent, flutterLoader)
             telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-            telephony!!.listen(phoneStateBackgroundListener, PhoneStateListener.LISTEN_CALL_STATE)
+            Handler().postDelayed({phoneStateBackgroundListener = PhoneStateBackgroundListener(context, intent, flutterLoader, telephony!!)}, 400)
+            Handler().postDelayed({telephony!!.listen(phoneStateBackgroundListener, PhoneStateListener.LISTEN_CALL_STATE)}, 400)
         }
     }
 
