@@ -40,9 +40,13 @@ class PhoneStateBackgroundListener internal constructor(
     private var time: ZonedDateTime? = null
     private var callType: CallType? = null
     private var previousState: Int? = null
+<<<<<<< Updated upstream
     private var retryAttempts = 0
     private val maxRetryAttempts = 2
     private var currentIncomingNumber: String = "" // Store number only from RINGING state
+=======
+    private var currentPhoneNumber: String? = null
+>>>>>>> Stashed changes
 
     @RequiresApi(Build.VERSION_CODES.O)
     @Synchronized
@@ -64,8 +68,10 @@ class PhoneStateBackgroundListener internal constructor(
         when (state) {
             TelephonyManager.CALL_STATE_IDLE -> {
                 val duration = Duration.between(time ?: ZonedDateTime.now(), ZonedDateTime.now())
+                val phoneNumber = currentPhoneNumber ?: ""
 
                 if (previousState == TelephonyManager.CALL_STATE_OFFHOOK && callType == CallType.INCOMING) {
+<<<<<<< Updated upstream
                     // Incoming call ended - use stored number from RINGING state
                     Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event IDLE (INCOMING ENDED) with number - $currentIncomingNumber")
                     notifyFlutterEngine(CallEvent.INCOMINGEND, duration.toMillis() / 1000, currentIncomingNumber)
@@ -82,20 +88,48 @@ class PhoneStateBackgroundListener internal constructor(
 
                 // Clear cached number after call ends
                 currentIncomingNumber = ""
+=======
+                    // Incoming call ended
+                    Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event IDLE (INCOMING ENDED) with number - $phoneNumber")
+                    notifyFlutterEngine(CallEvent.INCOMINGEND, duration.toMillis() / 1000, phoneNumber)
+                } else if(callType == CallType.OUTGOING) {
+                    // Outgoing call ended
+                    Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event IDLE (OUTGOING ENDED) with number - $phoneNumber")
+                    notifyFlutterEngine(CallEvent.OUTGOINGEND, duration.toMillis() / 1000, phoneNumber)
+                }
+                else {
+                    Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event IDLE (INCOMING MISSED) with number - $phoneNumber")
+                    notifyFlutterEngine(CallEvent.INCOMINGMISSED, 0, phoneNumber)
+                }
+
+                // Clear call session data
+>>>>>>> Stashed changes
                 callType = null
+                currentPhoneNumber = null
                 previousState = TelephonyManager.CALL_STATE_IDLE
             }
             TelephonyManager.CALL_STATE_OFFHOOK -> {
-                Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event STATE_OFFHOOK")
                 // Phone didn't ring, so this is an outgoing call
-                if (callType == null)
+                if (callType == null) {
+                    // New outgoing call starting - clear any old data first
+                    currentPhoneNumber = null
                     callType = CallType.OUTGOING
+                }
+                
+                // Capture phone number if available and not already set
+                if (!incomingNumber.isNullOrEmpty() && currentPhoneNumber == null) {
+                    currentPhoneNumber = incomingNumber
+                }
+                
+                val phoneNumber = currentPhoneNumber ?: ""
+                Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event STATE_OFFHOOK with number - $phoneNumber")
 
                 // Get current time to use later to calculate the duration of the call
                 time = ZonedDateTime.now()
                 previousState = TelephonyManager.CALL_STATE_OFFHOOK
 
                 if(callType == CallType.OUTGOING){
+<<<<<<< Updated upstream
                    // Outgoing call - no incoming number, always send empty string
                    notifyFlutterEngine(CallEvent.OUTGOINGSTART,0, "")
                 }
@@ -111,6 +145,27 @@ class PhoneStateBackgroundListener internal constructor(
                 callType = CallType.INCOMING
                 previousState = TelephonyManager.CALL_STATE_RINGING
                 notifyFlutterEngine(CallEvent.INCOMINGSTART,0, currentIncomingNumber)
+=======
+                   notifyFlutterEngine(CallEvent.OUTGOINGSTART, 0, phoneNumber)
+                }
+                else {
+                    notifyFlutterEngine(CallEvent.INCOMINGRECEIVED, 0, phoneNumber)
+                }
+            }
+            TelephonyManager.CALL_STATE_RINGING -> {
+                // New call starting - clear any old data first
+                if (callType == null) {
+                    currentPhoneNumber = null
+                }
+                
+                // Capture phone number from ringing state (most reliable for incoming calls)
+                currentPhoneNumber = if (!incomingNumber.isNullOrEmpty()) incomingNumber else ""
+                
+                Log.d(PhoneStateBackgroundPlugin.PLUGIN_NAME, "Phone State event PHONE_RINGING number: $currentPhoneNumber")
+                callType = CallType.INCOMING
+                previousState = TelephonyManager.CALL_STATE_RINGING
+                notifyFlutterEngine(CallEvent.INCOMINGSTART, 0, currentPhoneNumber ?: "")
+>>>>>>> Stashed changes
             }
         }
     }
