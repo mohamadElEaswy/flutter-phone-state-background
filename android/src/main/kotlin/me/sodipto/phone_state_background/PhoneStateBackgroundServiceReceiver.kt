@@ -21,8 +21,8 @@ class PhoneStateBackgroundServiceReceiver : BroadcastReceiver() {
             flutterLoader.startInitialization(context)
             flutterLoader.ensureInitializationComplete(context, null)
             telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-            Handler().postDelayed({phoneStateBackgroundListener = PhoneStateBackgroundListener(context, intent, flutterLoader, telephony!!)}, 400)
-            Handler().postDelayed({telephony!!.listen(phoneStateBackgroundListener, PhoneStateListener.LISTEN_CALL_STATE)}, 400)
+            phoneStateBackgroundListener = PhoneStateBackgroundListener(context, intent, flutterLoader)
+            telephony!!.listen(phoneStateBackgroundListener, PhoneStateListener.LISTEN_CALL_STATE)
         }
     }
 
